@@ -15,3 +15,11 @@ The exchange takes the message, uses the routing key as a filter, and sends the 
 RabbitMQ supports several types of exchanges, each serving a different routing strategy.
 
 ![alt text](.github/docs/exchange-types.png)
+
+### Queues
+Queues are where the messages are stored after being routed through the exchange. Messages sit in a queue until they are consumed by a subscriber.
+
+Durability
+Queues can be ["durable"](https://www.rabbitmq.com/docs/queues#durability) or "transient". Durable queues survive a RabbitMQ server restart, while transient queues do not.
+
+The metadata of a durable queue is stored on disk, while transient queues are only stored in memory.
