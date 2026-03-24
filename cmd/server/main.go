@@ -23,7 +23,7 @@ func main() {
 	defer conn.Close()
 	fmt.Println("Peril game server connected to RabbitMQ!")
 
-	// server connection
+	// amqp server channel
 	amqpCh, err := conn.Channel()
 	if err != nil {
 		fmt.Printf("unable to create channel: %v", err)
@@ -34,22 +34,24 @@ func main() {
 
 	for {
 		words := gamelogic.GetInput()
-		if len(words) < 1 {
+		if len(words) == 0 {
 			continue
 		}
-		if words[0] == "pause" {
+		switch words[0] {
+		case "pause":
 			publishToExchange(amqpCh, true)
-		}
-		if words[0] == "resume" {
+		case "resume":
 			publishToExchange(amqpCh, false)
-		}
-		if words[0] == "quit" {
+		case "quit":
 			fmt.Println("RabbitMQ connection closed.")
-			break
+			return
+		default:
+			log.Println("unknown command")
 		}
 	}
 }
 
+// publishToExchange handles publishing to exchange
 func publishToExchange(amqpCh *amqp.Channel, isPause bool) {
 
 	err := pubsub.PublishJSON(
@@ -61,5 +63,5 @@ func publishToExchange(amqpCh *amqp.Channel, isPause bool) {
 	if err != nil {
 		log.Printf("could not publish time: %v", err)
 	}
-	fmt.Println("Pause message sent!")
+	fmt.Println("Pause message published!")
 }
