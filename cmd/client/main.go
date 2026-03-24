@@ -27,18 +27,22 @@ func main() {
 	fmt.Println("Peril game server connected to RabbitMQ!")
 
 	username, _ := gamelogic.ClientWelcome()
-
 	queueName := fmt.Sprintf("%s.%s", routing.PauseKey, username)
 
 	// declare and bind the connection through exhange to the queue
-	pubsub.DeclareAndBind(
+	_, queue, err := pubsub.DeclareAndBind(
 		conn,
 		routing.ExchangePerilDirect,
 		queueName,
 		routing.PauseKey,
 		pubsub.TransientQueue,
 	)
+	if err != nil {
+		log.Fatalf("could not subscribe to pause: %v", err)
+	}
+	fmt.Printf("Queue %v declared and bound!\n", queue.Name)
 
+	// wait for ctrl-c
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 	<-quit
