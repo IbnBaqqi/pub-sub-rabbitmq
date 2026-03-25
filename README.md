@@ -23,3 +23,11 @@ Durability
 Queues can be ["durable"](https://www.rabbitmq.com/docs/queues#durability) or "transient". Durable queues survive a RabbitMQ server restart, while transient queues do not.
 
 The metadata of a durable queue is stored on disk, while transient queues are only stored in memory.
+
+### Consumers
+
+In all seriousness, nothing happens after the message arrives in the queue!
+
+This is where [consumers](https://www.rabbitmq.com/docs/consumers#basics) come in. Consumers are programs (like our "client" program) that connect to queues and pull the messages out of them.
+
+![alt text](.github/docs/consumers.png)
