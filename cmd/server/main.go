@@ -64,10 +64,10 @@ func main() {
 }
 
 // publishToExchange handles publishing to exchange
-func publishToExchange(amqpCh *amqp.Channel, isPause bool) {
+func publishToExchange(publishCh *amqp.Channel, isPause bool) {
 
 	err := pubsub.PublishJSON(
-		amqpCh,
+		publishCh,
 		routing.ExchangePerilDirect,
 		routing.PauseKey,
 		routing.PlayingState{IsPaused: isPause},
