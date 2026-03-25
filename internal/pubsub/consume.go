@@ -1,7 +1,7 @@
 package pubsub
 
 import (
-	"log"
+	"fmt"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -27,8 +27,7 @@ func DeclareAndBind(
 	// create a channel on the connection
 	amqpCh, err := conn.Channel()
 	if err != nil {
-		log.Printf("unable to create channel: %v", err)
-		return nil, amqp.Queue{}, err
+		return nil, amqp.Queue{}, fmt.Errorf("unable to create channel: %v", err)
 	}
 
 	// declear a new queue with it properties to hold messages & deliver to consumer
@@ -41,8 +40,7 @@ func DeclareAndBind(
 		nil,                           // args
 	)
 	if err != nil {
-		log.Printf("unable to declare queue: %v", err)
-		return nil, amqp.Queue{}, err
+		return nil, amqp.Queue{}, fmt.Errorf("unable declare queue: %v", err)
 	}
 
 	err = amqpCh.QueueBind(
@@ -53,8 +51,7 @@ func DeclareAndBind(
 		nil,         // args
 	)
 	if err != nil {
-		log.Printf("unable to bind queue: %v", err)
-		return nil, amqp.Queue{}, err
+		return nil, amqp.Queue{}, fmt.Errorf("unable to bind queue: %v", err)
 	}
 
 	return amqpCh, queue, nil
