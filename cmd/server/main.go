@@ -23,11 +23,23 @@ func main() {
 	defer conn.Close()
 	fmt.Println("Peril game server connected to RabbitMQ!")
 
-	// amqp server channel
-	amqpCh, err := conn.Channel()
+	// publish server channel
+	publishCh, err := conn.Channel()
 	if err != nil {
-		fmt.Printf("unable to create channel: %v", err)
+		log.Fatalf("unable to create channel: %v", err)
 	}
+
+	_, queue, err := pubsub.DeclareAndBind(
+		conn,
+		routing.ExchangePerilTopic,
+		routing.GameLogSlug,
+		routing.GameLogSlug + ".*",
+		pubsub.DurableQueue,
+	)
+	if err != nil {
+		log.Fatalf("unable to declare queue: %v", err)
+	}
+	fmt.Printf("Queue %v declared and bound!\n", queue.Name)
 
 	// print server commands
 	gamelogic.PrintServerHelp()
@@ -39,9 +51,9 @@ func main() {
 		}
 		switch words[0] {
 		case "pause":
-			publishToExchange(amqpCh, true)
+			publishToExchange(publishCh, true)
 		case "resume":
-			publishToExchange(amqpCh, false)
+			publishToExchange(publishCh, false)
 		case "quit":
 			fmt.Println("RabbitMQ connection closed.")
 			return
