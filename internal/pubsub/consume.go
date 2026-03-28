@@ -1,6 +1,7 @@
 package pubsub
 
 import (
+	"encoding/json"
 	"fmt"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -14,8 +15,9 @@ const (
 	TransientQueue SimpleQueueType = "transient"
 )
 
-// DeclareAndBind create a channel on conn and binds the exchange to a queue
-// with routing key
+// DeclareAndBind opens a new channel on conn, declares a queue with the given
+// queueType (durable or transient), and binds it to exchange using key as the
+// routing key. Returns the channel and declared queue.
 func DeclareAndBind(
 	conn *amqp.Connection,
 	exchange,
@@ -55,4 +57,37 @@ func DeclareAndBind(
 	}
 
 	return amqpCh, queue, nil
+}
+
+// SubscribeJSON declares and binds a queue, then consumes messages from it,
+// unmarshalling each delivery as JSON into type T and passing it to handler.
+// Blocks until the channel is closed.
+func SubscribeJSON[T any](
+    conn *amqp.Connection,
+    exchange,
+    queueName,
+    key string,
+    queueType SimpleQueueType,
+    handler func(T),
+) error {
+
+	ch, _, err := DeclareAndBind(conn, exchange, queueName, key, queueType)
+	if err != nil {
+		return err
+	}
+
+	deliveriesChan, err := ch.Consume(queueName, "", false, false, false, false, nil)
+
+	var value T
+	for delivery := range deliveriesChan {
+		if err := json.Unmarshal(delivery.Body, &value); err != nil {
+			return err
+		}
+		handler(value)
+		if err := delivery.Ack(false); err != nil {
+			return err 
+		}
+	}
+
+	return nil
 }
