@@ -30,19 +30,27 @@ func main() {
 	queueName := routing.PauseKey + "." + username
 
 	// declare and bind the connection through exhange to the queue
-	_, queue, err := pubsub.DeclareAndBind(
+	// _, queue, err := pubsub.DeclareAndBind(
+	// 	conn,
+	// 	routing.ExchangePerilDirect,
+	// 	queueName,
+	// 	routing.PauseKey,
+	// 	pubsub.TransientQueue,
+	// )
+	// if err != nil {
+	// 	log.Fatalf("could not subscribe to pause: %v", err)
+	// }
+	// fmt.Printf("Queue %v declared and bound!\n", queue.Name)
+	gameState := gamelogic.NewGameState(username)
+
+	err = pubsub.SubscribeJSON(
 		conn,
 		routing.ExchangePerilDirect,
 		queueName,
 		routing.PauseKey,
 		pubsub.TransientQueue,
+		handlerPause(gameState),
 	)
-	if err != nil {
-		log.Fatalf("could not subscribe to pause: %v", err)
-	}
-	fmt.Printf("Queue %v declared and bound!\n", queue.Name)
-
-	gameState := gamelogic.NewGameState(username)
 
 	for {
 		words := gamelogic.GetInput()
@@ -77,4 +85,11 @@ func main() {
 			log.Printf("unknown command")
 		}
 	}
+}
+
+// handlerPause returns a handler that updates the game state when a pause/resume
+// message is received
+func handlerPause(gs *gamelogic.GameState) func(routing.PlayingState) {
+	defer fmt.Print("> ")
+	return gs.HandlePause
 }
