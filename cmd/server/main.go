@@ -31,9 +31,9 @@ func main() {
 
 	_, queue, err := pubsub.DeclareAndBind(
 		conn,
-		routing.ExchangePerilTopic,
-		routing.GameLogSlug,
-		routing.GameLogSlug + ".*",
+		routing.ExchangePerilTopic,    // exchange
+		routing.GameLogSlug,           // queue name
+		routing.GameLogSlug + ".*",    // key
 		pubsub.DurableQueue,
 	)
 	if err != nil {
@@ -63,7 +63,8 @@ func main() {
 	}
 }
 
-// publishToExchange handles publishing to exchange
+// publishToExchange publishes a pause or resume state to the peril direct exchange.
+// Set isPause to true to pause the game, false to resume.
 func publishToExchange(publishCh *amqp.Channel, isPause bool) {
 
 	err := pubsub.PublishJSON(
