@@ -29,20 +29,7 @@ func main() {
 	}
 	queueName := routing.PauseKey + "." + username
 
-	// declare and bind the connection through exhange to the queue
-	// _, queue, err := pubsub.DeclareAndBind(
-	// 	conn,
-	// 	routing.ExchangePerilDirect,
-	// 	queueName,
-	// 	routing.PauseKey,
-	// 	pubsub.TransientQueue,
-	// )
-	// if err != nil {
-	// 	log.Fatalf("could not subscribe to pause: %v", err)
-	// }
-	// fmt.Printf("Queue %v declared and bound!\n", queue.Name)
 	gameState := gamelogic.NewGameState(username)
-
 	err = pubsub.SubscribeJSON(
 		conn,
 		routing.ExchangePerilDirect,
@@ -51,6 +38,9 @@ func main() {
 		pubsub.TransientQueue,
 		handlerPause(gameState),
 	)
+	if err != nil {
+		log.Fatalf("Client unable to subscribe: %v", err)
+	}
 
 	for {
 		words := gamelogic.GetInput()
@@ -58,11 +48,6 @@ func main() {
 			continue
 		}
 		switch words[0] {
-		case "spawn":
-			spawnErr := gameState.CommandSpawn(words)
-			if spawnErr != nil {
-				log.Printf("error occured: %v", spawnErr)
-			}
 		case "move":
 			armyMove, moveErr := gameState.CommandMove(words)
 			if moveErr != nil {
@@ -71,6 +56,12 @@ func main() {
 			}
 			// TODO publish the move
 			log.Printf("Unit moved to %s", armyMove.ToLocation)
+		case "spawn":
+			spawnErr := gameState.CommandSpawn(words)
+			if spawnErr != nil {
+				log.Printf("error occured: %v", spawnErr)
+				continue
+			}
 		case "status":
 			gameState.CommandStatus()
 		case "help":
@@ -90,6 +81,9 @@ func main() {
 // handlerPause returns a handler that updates the game state when a pause/resume
 // message is received
 func handlerPause(gs *gamelogic.GameState) func(routing.PlayingState) {
-	defer fmt.Print("> ")
-	return gs.HandlePause
+
+	return func(ps routing.PlayingState) {
+        defer fmt.Print("> ")
+        gs.HandlePause(ps)
+    }
 }
