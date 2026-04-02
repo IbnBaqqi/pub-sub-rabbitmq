@@ -73,21 +73,26 @@ func SubscribeJSON[T any](
 
 	ch, _, err := DeclareAndBind(conn, exchange, queueName, key, queueType)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not declare and bind queue %s: %v",queueName, err)
 	}
+	fmt.Printf("Queue %v declared and bound!\n", queueName)
 
-	deliveriesChan, err := ch.Consume(queueName, "", false, false, false, false, nil)
-
-	var value T
-	for delivery := range deliveriesChan {
-		if err := json.Unmarshal(delivery.Body, &value); err != nil {
-			return err
+	msgs, err := ch.Consume(queueName, "", false, false, false, false, nil)
+	
+	go func() {
+		var target T
+		for msg := range msgs {
+			if err := json.Unmarshal(msg.Body, &target); err != nil {
+				fmt.Println(err)
+				continue
+			}
+			handler(target)
+			if err := msg.Ack(false); err != nil {
+				fmt.Println(err)
+				continue
+			}
 		}
-		handler(value)
-		if err := delivery.Ack(false); err != nil {
-			return err 
-		}
-	}
+	} ()
 
 	return nil
 }
