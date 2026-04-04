@@ -78,11 +78,20 @@ func SubscribeJSON[T any](
 	fmt.Printf("Queue %v declared and bound!\n", queueName)
 
 	msgs, err := ch.Consume(queueName, "", false, false, false, false, nil)
+	if err != nil {
+		return fmt.Errorf("could not consume from queue %s: %v", queueName, err)
+	}
+
+	unmarshaller := func(data []byte) (T, error) {
+		var target T
+		err := json.Unmarshal(data, &target)
+		return target, err
+	}
 	
 	go func() {
-		var target T
 		for msg := range msgs {
-			if err := json.Unmarshal(msg.Body, &target); err != nil {
+			target, err := unmarshaller(msg.Body);
+			if err != nil {
 				fmt.Println(err)
 				continue
 			}
