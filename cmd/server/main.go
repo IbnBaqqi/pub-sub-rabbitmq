@@ -76,5 +76,5 @@ func publishToExchange(publishCh *amqp.Channel, isPause bool) {
 	if err != nil {
 		log.Printf("could not publish time: %v", err)
 	}
-	fmt.Println("Pause message published!")
+	fmt.Println("message published!")
 }

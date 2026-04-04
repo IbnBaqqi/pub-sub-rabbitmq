@@ -28,15 +28,15 @@ func main() {
 		log.Fatalf("could not get username: %v", err)
 	}
 	queueName := routing.PauseKey + "." + username
-
-	gameState := gamelogic.NewGameState(username)
+	gs := gamelogic.NewGameState(username)
+	
 	err = pubsub.SubscribeJSON(
 		conn,
 		routing.ExchangePerilDirect,
 		queueName,
 		routing.PauseKey,
 		pubsub.TransientQueue,
-		handlerPause(gameState),
+		handlerPause(gs),
 	)
 	if err != nil {
 		log.Fatalf("Client unable to subscribe: %v", err)
@@ -49,7 +49,7 @@ func main() {
 		}
 		switch words[0] {
 		case "move":
-			armyMove, moveErr := gameState.CommandMove(words)
+			armyMove, moveErr := gs.CommandMove(words)
 			if moveErr != nil {
 				log.Printf("error occured: %v", moveErr)
 				continue
@@ -57,13 +57,13 @@ func main() {
 			// TODO publish the move
 			log.Printf("Unit moved to %s", armyMove.ToLocation)
 		case "spawn":
-			spawnErr := gameState.CommandSpawn(words)
+			spawnErr := gs.CommandSpawn(words)
 			if spawnErr != nil {
 				log.Printf("error occured: %v", spawnErr)
 				continue
 			}
 		case "status":
-			gameState.CommandStatus()
+			gs.CommandStatus()
 		case "help":
 			gamelogic.PrintClientHelp()
 		case "spam":
