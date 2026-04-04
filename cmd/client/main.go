@@ -37,8 +37,8 @@ func main() {
 	if err = pubsub.SubscribeJSON( // Subscribe to handle gamestate pause
 		conn,
 		routing.ExchangePerilDirect,
-		routing.PauseKey+"."+username, // queueName
-		routing.PauseKey,              // routing key
+		routing.PauseKey+"."+username, // queue name: "pause.bob"
+		routing.PauseKey,              // routing key: matches "pause"
 		pubsub.TransientQueue,
 		handlerPause(gs),
 	); err != nil {
@@ -48,8 +48,8 @@ func main() {
 	if err = pubsub.SubscribeJSON( // Subscribe to player army move
 		conn,
 		routing.ExchangePerilTopic,
-		routing.ArmyMovesPrefix+"."+username, // queueName
-		routing.ArmyMovesPrefix+".*",         // routing key
+		routing.ArmyMovesPrefix+"."+username, // queue name: "army_moves.bob"
+		routing.ArmyMovesPrefix+".*",         // binding key: matches any "army_moves.<word>"
 		pubsub.TransientQueue,
 		handlerMove(gs),
 	); err != nil {
@@ -65,16 +65,20 @@ func main() {
 		case "move":
 			armyMove, err := gs.CommandMove(words)
 			if err != nil {
-				log.Printf("error occured: %v", err)
+				log.Printf("error: %v\n", err)
 				continue
 			}
-			pubsub.PublishJSON( // publish the move
+			err = pubsub.PublishJSON( // publish the move
 				publishCh,
 				routing.ExchangePerilTopic,
 				routing.ArmyMovesPrefix+".*",
 				armyMove,
 			)
-			log.Printf("Unit moved to %s", armyMove.ToLocation)
+			if err != nil {
+				log.Printf("error: %v\n", err)
+				continue
+			}
+			fmt.Printf("Moved %v units to %s", len(armyMove.Units), armyMove.ToLocation)
 		case "spawn":
 			err := gs.CommandSpawn(words)
 			if err != nil {
