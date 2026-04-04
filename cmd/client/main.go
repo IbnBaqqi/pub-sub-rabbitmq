@@ -23,22 +23,36 @@ func main() {
 	defer conn.Close()
 	fmt.Println("Peril game client connected to RabbitMQ!")
 
+	publishCh, err := conn.Channel()
+	if err != nil {
+		log.Fatalf("could not create channel: %v", err)
+	}
+
 	username, err := gamelogic.ClientWelcome()
 	if err != nil {
 		log.Fatalf("could not get username: %v", err)
 	}
-	queueName := routing.PauseKey + "." + username
 	gs := gamelogic.NewGameState(username)
-	
-	err = pubsub.SubscribeJSON(
+
+	if err = pubsub.SubscribeJSON( // Subscribe to handle gamestate pause
 		conn,
 		routing.ExchangePerilDirect,
-		queueName,
-		routing.PauseKey,
+		routing.PauseKey+"."+username, // queueName
+		routing.PauseKey,              // routing key
 		pubsub.TransientQueue,
 		handlerPause(gs),
-	)
-	if err != nil {
+	); err != nil {
+		log.Fatalf("Client unable to subscribe: %v", err)
+	}
+
+	if err = pubsub.SubscribeJSON( // Subscribe to player army move
+		conn,
+		routing.ExchangePerilTopic,
+		routing.ArmyMovesPrefix+"."+username, // queueName
+		routing.ArmyMovesPrefix+".*",         // routing key
+		pubsub.TransientQueue,
+		handlerMove(gs),
+	); err != nil {
 		log.Fatalf("Client unable to subscribe: %v", err)
 	}
 
@@ -49,17 +63,22 @@ func main() {
 		}
 		switch words[0] {
 		case "move":
-			armyMove, moveErr := gs.CommandMove(words)
-			if moveErr != nil {
-				log.Printf("error occured: %v", moveErr)
+			armyMove, err := gs.CommandMove(words)
+			if err != nil {
+				log.Printf("error occured: %v", err)
 				continue
 			}
-			// TODO publish the move
+			pubsub.PublishJSON( // publish the move
+				publishCh,
+				routing.ExchangePerilTopic,
+				routing.ArmyMovesPrefix+".*",
+				armyMove,
+			)
 			log.Printf("Unit moved to %s", armyMove.ToLocation)
 		case "spawn":
-			spawnErr := gs.CommandSpawn(words)
-			if spawnErr != nil {
-				log.Printf("error occured: %v", spawnErr)
+			err := gs.CommandSpawn(words)
+			if err != nil {
+				log.Printf("error occured: %v", err)
 				continue
 			}
 		case "status":
@@ -67,7 +86,6 @@ func main() {
 		case "help":
 			gamelogic.PrintClientHelp()
 		case "spam":
-			// TODO: publish n malicious logs
 			log.Printf("Spamming not allowed yet!")
 		case "quit":
 			gamelogic.PrintQuit()
@@ -76,14 +94,4 @@ func main() {
 			log.Printf("unknown command")
 		}
 	}
-}
-
-// handlerPause returns a handler that updates the game state when a pause/resume
-// message is received
-func handlerPause(gs *gamelogic.GameState) func(routing.PlayingState) {
-
-	return func(ps routing.PlayingState) {
-        defer fmt.Print("> ")
-        gs.HandlePause(ps)
-    }
 }
