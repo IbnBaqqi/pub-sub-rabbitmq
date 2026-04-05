@@ -38,7 +38,7 @@ func main() {
 		conn,
 		routing.ExchangePerilDirect,
 		routing.PauseKey+"."+username, // queue name: "pause.bob"
-		routing.PauseKey,              // routing key: matches "pause"
+		routing.PauseKey,              // binding key: matches "pause"
 		pubsub.TransientQueue,
 		handlerPause(gs),
 	); err != nil {
@@ -63,7 +63,7 @@ func main() {
 		}
 		switch words[0] {
 		case "move":
-			armyMove, err := gs.CommandMove(words)
+			move, err := gs.CommandMove(words)
 			if err != nil {
 				log.Printf("error: %v\n", err)
 				continue
@@ -71,14 +71,14 @@ func main() {
 			err = pubsub.PublishJSON( // publish the move
 				publishCh,
 				routing.ExchangePerilTopic,
-				routing.ArmyMovesPrefix+".*",
-				armyMove,
+				routing.ArmyMovesPrefix+"."+move.Player.Username,
+				move,
 			)
 			if err != nil {
 				log.Printf("error: %v\n", err)
 				continue
 			}
-			fmt.Printf("Moved %v units to %s", len(armyMove.Units), armyMove.ToLocation)
+			fmt.Printf("Moved %v units to %s", len(move.Units), move.ToLocation)
 		case "spawn":
 			err := gs.CommandSpawn(words)
 			if err != nil {
