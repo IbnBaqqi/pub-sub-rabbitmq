@@ -1,4 +1,4 @@
-Pub/Sub systems are often used to enable ["event-driven design", or "event-driven architecture"](https://aws.amazon.com/event-driven-architecture/). An event-driven architecture uses events to trigger and communicate between decoupled systems.
+	Pub/Sub systems are often used to enable ["event-driven design", or "event-driven architecture"](https://aws.amazon.com/event-driven-architecture/). An event-driven architecture uses events to trigger and communicate between decoupled systems.
 
 A [message broker](https://www.ibm.com/think/topics/message-brokers) is a middleman that allows different parts of the system to communicate without knowing about each other. Everyone is friends with the message broker, and the message broker is friends with everyone.
 
@@ -31,3 +31,10 @@ In all seriousness, nothing happens after the message arrives in the queue!
 This is where [consumers](https://www.rabbitmq.com/docs/consumers#basics) come in. Consumers are programs (like our "client" program) that connect to queues and pull the messages out of them.
 
 ![alt text](.github/docs/consumers.png)
+
+### Dead Letter Exchanges and Queues
+In an asynchronous system like RabbitMQ, the sender and receiver are decoupled. The sender doesn't need to know if the message was successfully delivered to the receiver. That has benefits, like simplicity and performance, but it also means that the chance of bugs increases.
+
+To address this, it's common in PubSub systems to aggregate messages that fail to be processed into a dead letter queue. Queues can be configured to send messages that fail to be processed to a dead letter exchange, which then routes the message to a dead letter queue.
+
+![alt text](.github/docs/dead-letter-queue.png)

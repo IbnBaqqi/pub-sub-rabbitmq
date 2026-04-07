@@ -73,7 +73,7 @@ func SubscribeJSON[T any](
 
 	ch, _, err := DeclareAndBind(conn, exchange, queueName, key, queueType)
 	if err != nil {
-		return fmt.Errorf("could not declare and bind queue %s: %v",queueName, err)
+		return fmt.Errorf("could not declare and bind queue %s: %v", queueName, err)
 	}
 	fmt.Printf("Queue %v declared and bound!\n", queueName)
 
