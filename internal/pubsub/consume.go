@@ -10,9 +10,17 @@ import (
 // SimpleQueueType is an "enum" type I made to represent "durable" or "transient"
 type SimpleQueueType string
 
+type Acktype int
+
 const (
 	DurableQueue SimpleQueueType = "durable"
 	TransientQueue SimpleQueueType = "transient"
+)
+
+const (
+	Ack Acktype = iota
+	NackDiscard
+	NackRequeue
 )
 
 // DeclareAndBind opens a new channel on conn, declares a queue with the given
@@ -68,7 +76,7 @@ func SubscribeJSON[T any](
     queueName,
     key string,
     queueType SimpleQueueType,
-    handler func(T),
+    handler func(T) Acktype,
 ) error {
 
 	ch, _, err := DeclareAndBind(conn, exchange, queueName, key, queueType)
@@ -95,11 +103,21 @@ func SubscribeJSON[T any](
 				fmt.Println(err)
 				continue
 			}
-			handler(target)
-			if err := msg.Ack(false); err != nil {
-				fmt.Println(err)
-				continue
+			switch handler(target) {
+			case Ack:
+				msg.Ack(false)
+				fmt.Println("Ack")
+			case NackDiscard:
+				msg.Nack(false, false)
+				fmt.Println("NackDiscard")
+			case NackRequeue:
+				msg.Nack(false, true)
+				fmt.Println("NackRequeue")
 			}
+			// if err := msg.Ack(false); err != nil {
+			// 	fmt.Println(err)
+			// 	continue
+			// }
 		}
 	} ()
 
